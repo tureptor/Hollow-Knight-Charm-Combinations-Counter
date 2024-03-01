@@ -1,8 +1,8 @@
 # About
 
-Quick-and-dirty program that enumerates (counts and lists) all possible charm combinations in Hollow Knight without being "overcharmed" or simply unable to equip more. According to this solution, there are 4,460,494 combinations of charms possible (including no charms) without exceeding the number of charm notches available (11) and incurring a penalty ("overcharmed").
-This solution is suboptimal, but only takes about 3 minutes to run. The resulting text file, combos.txt, is about 800mb.
-I may modify this in the future to accommodate "overcharmed" combinations (combinations exceeding 11 notches). I invite others to try to calculate those combinations before I do.
+## How Many Charm Combinations Are There In Hollow Knight?
+
+Without exceeding 11 charm notches and being "overcharmed", there are **4,460,494** combinations of charms possible in *Hollow Knight*. I wrote this quick-and-dirty program to enumerate them. This solution is suboptimal, but only takes about 3 minutes to run as it is now. The resulting text file, combos.txt, is about 800mb. I may modify this in the future to make it run faster and to accommodate "overcharmed" combinations (combinations exceeding 11 notches). I invite others to try to calculate those combinations before I do.
 
 ## Rules
 
