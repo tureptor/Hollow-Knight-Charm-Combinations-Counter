@@ -1,8 +1,12 @@
 # About
 
+This is a rewrite of SJT1988's project which uses dynamic programming to speed things up (about 5x faster on my machine), and optionally allows overcharmed combinations too. The output is written to "combos.txt" by default.
+
 ## How Many Charm Combinations Are There In Hollow Knight?
 
-Without exceeding 11 charm notches and being "overcharmed", there are **4,460,494** combinations of charms possible in *Hollow Knight*. I wrote this quick-and-dirty program to enumerate them. This solution is suboptimal, but only takes about 3 minutes to run as it is now. The resulting text file, combos.txt, is about 800mb. I may modify this in the future to make it run faster and to accommodate "overcharmed" combinations (combinations exceeding 11 notches). I invite others to try to calculate those combinations before I do.
+Without exceeding 11 charm notches and being "overcharmed", there are **4,460,494** combinations of charms possible in *Hollow Knight*, and with overcharmed combinations being permitted, it is instead **23,776,564**.  
+The resulting text file, combos.txt, is about 471MB and 2.7GB with and without overcharmed combinations permitted. (This is reduced to 79MB and 465MB if the alternative encoding is used)  
+You can find pre-generated versions of these files in this repo compressed with xz. 
 
 ## Rules
 
@@ -14,3 +18,9 @@ Without exceeding 11 charm notches and being "overcharmed", there are **4,460,49
 - The following two pairs of charms cannot coexist because they require different choices during a playthrough. Grimmchild has multiple upgrade stages, but they are not considered unique by any wikis:
 	- **Grimmchild I-IV**, **Carefree Melody**
 - **Kingsoul** and **Voidheart** are also an upgrade pair that cannot coexist.
+
+# Usage
+
+Clone the repository and run HK_charms_combo_counter.py with Python.  
+
+It does have a dependency on tqdm to display a progress bar (`from tqdm.contrib import itertools`) but if you don't want to install it, just import the standard `itertools` instead and remove the `miniters=1` parameter from the call of `itertools.product`

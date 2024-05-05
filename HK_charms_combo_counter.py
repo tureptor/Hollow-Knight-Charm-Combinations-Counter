@@ -1,55 +1,101 @@
-##########################################
-# Written 02-14-2024 by Spencer Trumbore #
-##########################################
+###########################################################
+# Original version written 2024-02-14 by Spencer Trumbore #
+# Rewritten 2024-05-04 by Mansoor Amiri                   #
+###########################################################
 
-import numpy as np
 import csv
+from tqdm.contrib import itertools
 
-def InitializeCharmsArray():
-    datafile = open('hk_charms.csv', 'r')
-    datareader = csv.reader(datafile, delimiter=',')
-    data = []
-    for row in datareader:
-        data.append([int(row[0]), row[1], int(row[2])])
-    return data
-
-def WeightSum(_charmArray):
-    total = 0
-    for charm in _charmArray:
-        total += charm[2]
-    return total
-
-def GrimmchildOrCarefree(_charm):
-    if (_charm[0] == 39 or _charm[0] == 40): return 1
-    else: return 0
-
-def KingsoulOrVoidheart(_charm):
-    if (_charm[0] == 41 or _charm[0] == 42): return 1
-    else: return 0
+# replace with just `import itertools` if you don't want tqdm
 
 
-charmsArray = InitializeCharmsArray()
-combinations = [[]]
+class CharmComboFinder:
+    def __init__(self, numNotches, allowOvercharmed=False):
+        self.charmNotches = dict()  # int (id) => int (notches used by charm)
+        self.charmName = dict()  # int (id) => str (charm name)
+        self.numNotches = numNotches
+        self.allowOvercharmed = allowOvercharmed
 
-counter = 0
-conflict = False
-f = open("combos.txt", "a")
-for charm in charmsArray:
-    for subset in combinations:
-        if (charm not in subset):
-            if (charm[0] == 39 or charm[0] == 40):
-                if (np.sum(list(map(GrimmchildOrCarefree, subset))) > 0):
-                    conflict = True
-            elif (charm[0] == 41 or charm[0] == 42):
-                if (np.sum(list(map(KingsoulOrVoidheart, subset))) > 0):
-                    conflict = True
-            if ((conflict == False) and (WeightSum(subset) + charm[2] <= 11)):
-                new_subset = subset + [charm]
-                combinations.append(new_subset)
-                counter+=1
-                f.write(str(counter) + '\t' + str(new_subset) + '\n')
-            conflict = False
+        with open("hk_charms.csv", "r") as rawData:
+            charmRows = csv.reader(rawData, delimiter=",")
+            for row in charmRows:
+                id, name, notches = int(row[0]), row[1], int(row[2])
+                self.charmNotches[id] = notches
+                self.charmName[id] = name
 
-f.close()
-print(counter)
-print("DONE!")
+    def getCharmName(self, id):
+        return self.charmName[id]
+
+    def hasConflict(self, combo):
+        if {39, 40}.issubset(combo):  # combo has both grimmchild and carefree
+            return True
+        if {41, 42}.issubset(combo):  # combo has both kingsoul and voidheart
+            return True
+        return False
+
+    def listCombos(self):
+        numCharms = len(self.charmNotches)
+        maxNotchesToConsider = self.numNotches
+        if self.allowOvercharmed:
+            maxNotchesToConsider += max(self.charmNotches.values()) - 1
+
+        partialCombos = []
+        # partialCombos[i][n] contains a list of tuples
+        # Each tuple is composed of a combination and a number
+        # These combinations use exactly n notches
+        # The notches within the combinations have an id <= i
+        # The number is the max number of notches used by a single charm
+        # This is used for determining overcharmed combinations.
+
+        for i in range(numCharms + 1):
+            partialCombos.append([[] for n in range(maxNotchesToConsider + 1)])
+
+        partialCombos[0][0].append(([], 0))
+        # If we have no notches and no charms available, we can always use the empty set
+        # The algorithm will build all other combinations based off this initial entry.
+
+        # remove miniters=1 parameter if not using the tqdm version of itertools
+        for i, n in itertools.product(
+            range(1, numCharms + 1), range(0, maxNotchesToConsider + 1), miniters=1
+        ):
+            charmN = self.charmNotches[i]
+            partialCombos[i][n] += [c for c in partialCombos[i - 1][n]]
+            if charmN + n <= self.numNotches:
+                for prev in partialCombos[i - 1][n]:
+                    partialCombos[i][n + charmN].append(
+                        (prev[0] + [i], max(prev[1], charmN))
+                    )
+            elif self.allowOvercharmed:
+                for prev in partialCombos[i - 1][n]:
+                    if n < self.numNotches or n + charmN - prev[1] < self.numNotches:
+                        # either there is an empty notch in the existing combination
+                        # or we can take the biggest charm out (-prev[1]), put the current charm in (+charmN)
+                        # and this would leave empty notches for the biggest charm to put back in
+                        partialCombos[i][n + charmN].append(
+                            (prev[0] + [i], max(prev[1], charmN))
+                        )
+
+        print("finished generation of combos")
+        for w in partialCombos[numCharms]:
+            for combo, _ in w:
+                if not self.hasConflict(combo):
+                    yield combo
+
+
+a = CharmComboFinder(numNotches=11, allowOvercharmed=True)
+
+with open("combos.txt", "w") as outputFile:
+    for i, combo in enumerate(a.listCombos()):
+        if i % 2**13 == 0:
+            print("Lines written:", i + 1, end="\r")
+        outputFile.write(
+            str(i + 1)
+            + "\t"
+            + ", ".join(a.getCharmName(charm) for charm in combo)
+            + "\n"
+        )
+        # alternative encoding:
+        # outputFile.write(",".join(str(charm) for charm in combo) + "\n")
+    print("Lines written:", i + 1)  # i % 2**13 != 0 otherwise print() would suffice
+
+print("done")
