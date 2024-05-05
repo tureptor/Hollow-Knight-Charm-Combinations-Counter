@@ -4,9 +4,7 @@
 ###########################################################
 
 import csv
-from tqdm.contrib import itertools
-
-# replace with just `import itertools` if you don't want tqdm
+from tqdm import trange
 
 
 class CharmComboFinder:
@@ -53,16 +51,18 @@ class CharmComboFinder:
         # The algorithm will build all other combinations based off this initial entry.
 
         # remove miniters=1 parameter if not using the tqdm version of itertools
-        for i, n in itertools.product(
-            range(1, numCharms + 1), range(0, maxNotchesToConsider + 1), miniters=1
-        ):
-            charmN = self.charmNotches[i]
-            partialCombos[i][n] += [c for c in partialCombos[i - 1][n]]
-            if (charmN + n <= self.numNotches) or (
-                self.allowOvercharmed and n < self.numNotches
-            ):
-                for prev in partialCombos[i - 1][n]:
-                    partialCombos[i][n + charmN].append(prev + [i])
+        for i in trange(1, numCharms + 1):
+            for n in trange(0, maxNotchesToConsider + 1, leave=False, miniters=1):
+                charmN = self.charmNotches[i]
+                partialCombos[i][n] += [c for c in partialCombos[i - 1][n]]
+                if (charmN + n <= self.numNotches) or (
+                    self.allowOvercharmed and n < self.numNotches
+                ):
+                    for prev in partialCombos[i - 1][n]:
+                        partialCombos[i][n + charmN].append(prev + [i])
+            partialCombos[i - 1] = []
+            # we will never need this row again - we just generated partialCombos[i]
+            # which is the only row the next (i+1th) iteration will use
 
         print("finished generation of combos")
         for w in partialCombos[numCharms]:

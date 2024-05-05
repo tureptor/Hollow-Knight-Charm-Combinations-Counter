@@ -23,4 +23,4 @@ You can find pre-generated versions of these files in this repo compressed with 
 
 Clone the repository and run HK_charms_combo_counter.py with Python.  
 
-It does have a dependency on tqdm to display a progress bar (`from tqdm.contrib import itertools`) but if you don't want to install it, just import the standard `itertools` instead and remove the `miniters=1` parameter from the call of `itertools.product`
+It does have a dependency on `tqdm` to display a progress bar (`from tqdm import trange`) but if you don't want to install it, replace instances of trange with just range and get rid of `tqdm`-specific args (`miniters`, `leave`)
