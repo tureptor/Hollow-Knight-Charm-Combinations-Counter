@@ -4,7 +4,14 @@
 ###########################################################
 
 import csv
-from tqdm import trange, tqdm
+
+try:
+    from tqdm import tqdm
+
+except ImportError:
+
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 
 class CharmComboFinder:
@@ -49,8 +56,8 @@ class CharmComboFinder:
         # The algorithm will build all other combinations based off this initial entry.
 
         # remove miniters=1 parameter if not using the tqdm version of itertools
-        for i in trange(1, numCharms + 1, miniters=1):
-            for n in trange(0, maxNotchesToConsider + 1, leave=False, miniters=1):
+        for i in tqdm(range(1, numCharms + 1), miniters=1):
+            for n in tqdm(range(maxNotchesToConsider + 1), leave=False, miniters=1):
                 charmN = self.charmNotches[i]
                 partialCombos[i][n] += partialCombos[i - 1][n]
                 if (charmN + n <= self.numNotches) or (

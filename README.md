@@ -21,6 +21,5 @@ You can find pre-generated versions of these files in this repo compressed with 
 
 # Usage
 
-Clone the repository and run HK_charms_combo_counter.py with Python.  
-
-It has a dependency on `tqdm` for showing progress.
+Clone the repository and run HK_charms_combo_counter.py with Python.
+Optionally install the `tqdm` Python module for progress bars. The program will still run fine without it, just without progress bars.
