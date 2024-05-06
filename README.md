@@ -1,6 +1,6 @@
 # About
 
-This is a rewrite of SJT1988's project which uses dynamic programming to speed things up (about 5x faster on my machine), and optionally allows overcharmed combinations too. The output is written to "combos.txt" by default.
+This is a rewrite of SJT1988's project which uses dynamic programming to speed things up (about 7x faster on my machine), and optionally allows overcharmed combinations too. The output is written to "combos.txt" by default.
 
 ## How Many Charm Combinations Are There In Hollow Knight?
 
@@ -23,4 +23,4 @@ You can find pre-generated versions of these files in this repo compressed with 
 
 Clone the repository and run HK_charms_combo_counter.py with Python.  
 
-It does have a dependency on `tqdm` to display a progress bar (`from tqdm import trange`) but if you don't want to install it, replace instances of trange with just range and get rid of `tqdm`-specific args (`miniters`, `leave`)
+It has a dependency on `tqdm` for showing progress.

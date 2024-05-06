@@ -4,13 +4,15 @@
 ###########################################################
 
 import csv
-from tqdm import trange
+from tqdm import trange, tqdm
 
 
 class CharmComboFinder:
     def __init__(self, numNotches, allowOvercharmed=False):
         self.charmNotches = dict()  # int (id) => int (notches used by charm)
         self.charmName = dict()  # int (id) => str (charm name)
+        self.finalCombos = []
+
         self.numNotches = numNotches
         self.allowOvercharmed = allowOvercharmed
 
@@ -24,14 +26,10 @@ class CharmComboFinder:
     def getCharmName(self, id):
         return self.charmName[id]
 
-    def hasConflict(self, combo):
-        if {24, 36}.issubset(combo):  # combo has both grimmchild and carefree
-            return True
-        if {1, 42}.issubset(combo):  # combo has both kingsoul and voidheart
-            return True
-        return False
+    def causesConflict(self, i, combo):
+        return (i == 36 and 24 in combo) or (i == 42 and 1 in combo)
 
-    def listCombos(self):
+    def genCombos(self):
         numCharms = len(self.charmNotches)
         maxNotchesToConsider = self.numNotches
         if self.allowOvercharmed:
@@ -51,40 +49,36 @@ class CharmComboFinder:
         # The algorithm will build all other combinations based off this initial entry.
 
         # remove miniters=1 parameter if not using the tqdm version of itertools
-        for i in trange(1, numCharms + 1):
+        for i in trange(1, numCharms + 1, miniters=1):
             for n in trange(0, maxNotchesToConsider + 1, leave=False, miniters=1):
                 charmN = self.charmNotches[i]
-                partialCombos[i][n] += [c for c in partialCombos[i - 1][n]]
+                partialCombos[i][n] += partialCombos[i - 1][n]
                 if (charmN + n <= self.numNotches) or (
                     self.allowOvercharmed and n < self.numNotches
                 ):
                     for prev in partialCombos[i - 1][n]:
+                        if self.causesConflict(i, prev):
+                            continue
                         partialCombos[i][n + charmN].append(prev + [i])
             partialCombos[i - 1] = []
             # we will never need this row again - we just generated partialCombos[i]
             # which is the only row the next (i+1th) iteration will use
 
         print("finished generation of combos")
-        for w in partialCombos[numCharms]:
-            for combo in w:
-                if not self.hasConflict(combo):
-                    yield combo
+        self.finalCombos = (combo for w in partialCombos[numCharms] for combo in w)
 
+    def yieldCombos(self):
+        return self.finalCombos
 
-a = CharmComboFinder(numNotches=11, allowOvercharmed=True)
 
 with open("combos.txt", "w") as outputFile:
-    for i, combo in enumerate(a.listCombos()):
-        if i % 2**13 == 0:
-            print("Lines written:", i + 1, end="\r")
-        outputFile.write(
-            str(i + 1)
-            + "\t"
-            + ", ".join(a.getCharmName(charm) for charm in combo)
-            + "\n"
-        )
-        # alternative encoding:
-        # outputFile.write(",".join(str(charm) for charm in combo) + "\n")
-    print("Lines written:", i + 1)  # i % 2**13 != 0 otherwise print() would suffice
+    a = CharmComboFinder(numNotches=11, allowOvercharmed=True)
+    a.genCombos()
+    outputFile.writelines(
+        str(i) + "\t" + ", ".join(a.getCharmName(charm) for charm in combo) + "\n"
+        for i, combo in enumerate(tqdm(a.yieldCombos(), desc="Lines written"), 1)
+    )
+    # alternative encoding:
+    # outputFile.write(",".join(str(charm) for charm in combo) + "\n")
 
 print("done")
