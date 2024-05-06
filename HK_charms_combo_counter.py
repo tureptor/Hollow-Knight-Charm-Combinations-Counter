@@ -4,6 +4,10 @@
 ###########################################################
 
 import csv
+from typing import Generator
+
+type CharmID = int
+type Combination = list[CharmID]
 
 try:
     from tqdm import tqdm
@@ -15,50 +19,55 @@ except ImportError:
 
 
 class CharmComboFinder:
-    def __init__(self, numNotches, allowOvercharmed=False):
-        self.charmNotches = dict()  # int (id) => int (notches used by charm)
-        self.charmName = dict()  # int (id) => str (charm name)
-        self.finalCombos = []
+    def __init__(self, numNotches: int, allowOvercharmed: bool = False):
+        self.charmNotches: list[int] = [0]
+        self.charmName: dict[CharmID, str] = dict()
 
-        self.numNotches = numNotches
-        self.allowOvercharmed = allowOvercharmed
+        self.numNotches: int = numNotches
+        self.allowOvercharmed: bool = allowOvercharmed
 
         with open("hk_charms.csv", "r") as rawData:
             charmRows = csv.reader(rawData, delimiter=",")
             for i, row in enumerate(charmRows, 1):
                 name, notches = row[0], int(row[1])
-                self.charmNotches[i] = notches
+                self.charmNotches.append(notches)
                 self.charmName[i] = name
 
-    def getCharmName(self, id):
+    def getCharmName(self, id: CharmID) -> str:
         return self.charmName[id]
 
-    def causesConflict(self, i, combo):
+    def causesConflict(self, i: CharmID, combo: Combination) -> bool:
         return (i == 36 and 24 in combo) or (i == 42 and 1 in combo)
 
-    def genCombos(self):
-        numCharms = len(self.charmNotches)
-        maxNotchesToConsider = self.numNotches
+    def getCombosGenerator(self) -> Generator[Combination, None, None]:
+        numCharms: int = len(self.charmName)
+        maxNotchesToConsider: int = self.numNotches
         if self.allowOvercharmed:
-            maxNotchesToConsider += max(self.charmNotches.values()) - 1
+            maxNotchesToConsider += max(self.charmNotches) - 1
 
-        partialCombos = []
+        partialCombos: list[list[list[Combination]]] = []
         # partialCombos[i][n] contains a list of combinations
-        # the combinations themselves are a list of ints corresponding to the charm id
         # These combinations use exactly n notches
         # The notches within the combinations have an id <= i
 
         for i in range(numCharms + 1):
-            partialCombos.append([[] for n in range(maxNotchesToConsider + 1)])
+            partialCombos.append([[] for _ in range(maxNotchesToConsider + 1)])
 
         partialCombos[0][0].append([])
         # If we have no notches and no charms available, we can always use the empty set
         # The algorithm will build all other combinations based off this initial entry.
 
         # remove miniters=1 parameter if not using the tqdm version of itertools
-        for i in tqdm(range(1, numCharms + 1), miniters=1):
-            for n in tqdm(range(maxNotchesToConsider + 1), leave=False, miniters=1):
-                charmN = self.charmNotches[i]
+        for i in tqdm(
+            range(1, numCharms + 1), miniters=1, desc="Generating combinations"
+        ):
+            for n in tqdm(
+                range(maxNotchesToConsider + 1),
+                leave=False,
+                miniters=1,
+                desc=f"Considering varying notch counts",
+            ):
+                charmN: int = self.charmNotches[i]
                 partialCombos[i][n] += partialCombos[i - 1][n]
                 if (charmN + n <= self.numNotches) or (
                     self.allowOvercharmed and n < self.numNotches
@@ -71,19 +80,17 @@ class CharmComboFinder:
             # we will never need this row again - we just generated partialCombos[i]
             # which is the only row the next (i+1th) iteration will use
 
-        print("finished generation of combos")
-        self.finalCombos = (combo for w in partialCombos[numCharms] for combo in w)
-
-    def yieldCombos(self):
-        return self.finalCombos
+        return (combo for w in partialCombos[numCharms] for combo in w)
 
 
 with open("combos.txt", "w") as outputFile:
-    a = CharmComboFinder(numNotches=11, allowOvercharmed=True)
-    a.genCombos()
+    a = CharmComboFinder(numNotches=11, allowOvercharmed=False)
+    comboGen = a.getCombosGenerator()
     outputFile.writelines(
         str(i) + "\t" + ", ".join(a.getCharmName(charm) for charm in combo) + "\n"
-        for i, combo in enumerate(tqdm(a.yieldCombos(), desc="Lines written"), 1)
+        for i, combo in enumerate(
+            tqdm(comboGen, desc="Writing output to file", unit=" lines"), 1
+        )
     )
     # alternative encoding:
     # outputFile.write(",".join(str(charm) for charm in combo) + "\n")
